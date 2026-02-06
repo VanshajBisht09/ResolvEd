@@ -11,6 +11,7 @@ import { SettingsView } from './components/views/SettingsView';
 import { DashboardView } from './components/views/DashboardView';
 import { ComplaintsView } from './components/views/ComplaintsView';
 import { UsersView } from './components/views/UsersView';
+import { SuperAdminView } from './components/views/SuperAdminView';
 import { LoginPage } from './components/LoginPage';
 import LandingPage from './components/LandingPage';
 import { ThemeProvider } from './components/ThemeContext';
@@ -40,6 +41,9 @@ function App() {
       case 'Users': 
         if (user?.publicMetadata?.role !== 'admin') return <DashboardView onNavigate={setCurrentView} />;
         return <UsersView />;
+      case 'Colleges':
+        if (user?.publicMetadata?.role !== 'superadmin') return <DashboardView onNavigate={setCurrentView} />;
+        return <SuperAdminView />;
       default: return <DashboardView onNavigate={setCurrentView} />;
     }
   };

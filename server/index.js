@@ -23,11 +23,55 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-mock-role']
+}));
 app.use(express.json());
 
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Connect to DB
-connectDB();
+connectDB().then(async () => {
+  // Seed Mock Data if in Dev/Mock Mode
+  if (process.env.MOCK_AUTH === 'true') {
+    try {
+      const mockUserId = 'user_mock_123';
+      const userExists = await User.findOne({ clerkId: mockUserId });
+      
+      if (!userExists) {
+        console.log('Seeding Mock Admin User...');
+        // Create Mock College
+        let demoCollege = await College.findOne({ email: 'demo@college.edu' });
+        if (!demoCollege) {
+          demoCollege = await College.create({
+            name: 'Demo University',
+            email: 'demo@college.edu',
+            address: '123 Mock Lane',
+            subscriptionStatus: 'active'
+          });
+        }
+
+        // Create Mock Admin
+        await User.create({
+          clerkId: mockUserId,
+          firstName: 'Mock',
+          lastName: 'Admin',
+          email: 'admin@demo.edu',
+          role: 'admin',
+          collegeId: demoCollege._id
+        });
+        console.log('Mock Data Seeded: Admin User created linked to Demo University');
+      }
+    } catch (err) {
+      console.error('Seeding Error:', err);
+    }
+  }
+});
 
 // Socket.io Setup
 socketHandler(io);
@@ -141,6 +185,13 @@ app.post('/api/users/sync', requireAuth, async(req, res) => {
 });
 
 
+
+// Super Admin & College Admin Routes
+const superAdminRoutes = require('./routes/superAdmin');
+const collegeAdminRoutes = require('./routes/collegeAdmin');
+
+app.use('/api/superadmin', superAdminRoutes);
+app.use('/api/college', collegeAdminRoutes);
 
 // Meeting Request Routes
 const MeetingRequest = require('./models/MeetingRequest');

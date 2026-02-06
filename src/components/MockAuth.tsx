@@ -17,7 +17,7 @@ export const SignedOut = ({ children }: { children: React.ReactNode }) => {
   return !user ? <>{children}</> : null;
 };
 
-export const SignInButton = ({ children, mode, role }: { mode?: string, role?: 'student' | 'teacher' | 'admin', children: React.ReactNode }) => {
+export const SignInButton = ({ children, mode, role }: { mode?: string, role?: 'student' | 'teacher' | 'admin' | 'superadmin', children: React.ReactNode }) => {
   const { signIn } = useUser();
   return <div onClick={() => signIn(role)}>{children}</div>;
 };
@@ -60,7 +60,7 @@ export const MockClerkProvider = ({ children }: { children: React.ReactNode }) =
      if(stored) setUser(JSON.parse(stored));
   }, []);
 
-  const signIn = (role: 'student' | 'teacher' | 'admin' = 'student') => {
+  const signIn = (role: 'student' | 'teacher' | 'admin' | 'superadmin' = 'student') => {
     const mockUsers = {
       student: {
         id: 'std1',
@@ -82,6 +82,13 @@ export const MockClerkProvider = ({ children }: { children: React.ReactNode }) =
         firstName: 'Admin',
         primaryEmailAddress: { emailAddress: 'admin@university.edu' },
         publicMetadata: { role: 'admin' }
+      },
+      superadmin: {
+        id: 'super_admin_001',
+        fullName: 'Super Admin',
+        firstName: 'System',
+        primaryEmailAddress: { emailAddress: 'super@resolved.com' },
+        publicMetadata: { role: 'superadmin' }
       }
     };
     

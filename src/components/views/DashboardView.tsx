@@ -7,6 +7,7 @@ import { AdminDashboard } from '../AdminDashboard';
 import { Box, Typography, Button, Grid, Skeleton, useTheme, alpha } from '@mui/material';
 import { MeetingRequest } from '../../types';
 
+import { SuperAdminView } from './SuperAdminView';
 import { RequestDetailsModal } from '../RequestDetailsModal';
 
 export const DashboardView = ({ onNavigate }: { onNavigate: (view: string) => void }) => {
@@ -121,8 +122,13 @@ export const DashboardView = ({ onNavigate }: { onNavigate: (view: string) => vo
                 user={{...user, id: user.id || 'admin', name: user.fullName || 'Admin', email: '', role: 'admin'}} 
                 allRequests={requests} 
                 onLogout={signOut} 
+                onNavigate={onNavigate}
             />
         );
+    }
+
+    if (role === 'superadmin') {
+        return <SuperAdminView />;
     }
 
     if (role === 'teacher' || role === 'faculty') {

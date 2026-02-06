@@ -1,30 +1,76 @@
 import React, { useState } from 'react';
-import { Box, Typography, Card, CardContent, Grid, Tabs, Tab, Button, Avatar, Chip, IconButton, Dialog, DialogTitle, DialogContent, TextField, DialogActions, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { 
+    Box, Typography, Button, Paper, Table, TableBody, TableCell, 
+    TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Stack,
+    useTheme, alpha, Card, CardContent, Grid, LinearProgress, Avatar,
+    Dialog, DialogTitle, DialogContent, TextField, DialogActions, FormControl, InputLabel, Select, MenuItem, Menu
+} from '@mui/material';
 import { useUser } from '../MockAuth';
-import { Edit, Trash2, UserPlus, Search, Mail, Shield } from 'lucide-react';
-
-// Mock Data
-const initialUsers = [
-    { id: 1, name: 'Vikram Student', role: 'student', department: 'Computer Science', email: 'vikram@university.edu', status: 'Active' },
-    { id: 2, name: 'Rahul Verma', role: 'student', department: 'Mechanical Eng.', email: 'rahul@university.edu', status: 'Active' },
-    { id: 3, name: 'Priya Singh', role: 'student', department: 'Electrical Eng.', email: 'priya@university.edu', status: 'Inactive' },
-    { id: 4, name: 'Prof. Sharma', role: 'teacher', department: 'Computer Science', email: 'sharma@university.edu', status: 'Active' },
-    { id: 5, name: 'Dr. Aditi Gupta', role: 'teacher', department: 'Physics', email: 'aditi@university.edu', status: 'Active' },
-];
+import { Edit, Trash2, UserPlus, Search, Mail, Shield, Upload, ChevronDown, RefreshCcw, Activity, Users, UserCheck, GraduationCap } from 'lucide-react';
+import { AddMemberForm } from '../CollegeAdmin/AddMemberForm';
+import { BulkImport } from '../CollegeAdmin/BulkImport';
 
 export const UsersView = () => {
     const { user } = useUser();
-    const [tabValue, setTabValue] = useState(0);
-    const [users, setUsers] = useState(initialUsers);
+    const theme = useTheme();
+    const [tabValue, setTabValue] = useState(0); // 0 = Students, 1 = Faculty
+    const [users, setUsers] = useState<any[]>([]); 
     const [searchTerm, setSearchTerm] = useState('');
     const [openEdit, setOpenEdit] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
+    const [loading, setLoading] = useState(false); // Default false, fetch triggers true
+    
+    // Add Member State
+    const [openAdd, setOpenAdd] = useState(false);
+    const [openImport, setOpenImport] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-    // Filter users based on tab and search
-    const filteredUsers = users.filter(u => {
-        const roleMatch = tabValue === 0 ? u.role === 'student' : u.role === 'teacher';
-        const searchMatch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase());
-        return roleMatch && searchMatch;
+    // Fetch Users
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/college/members', {
+                headers: { 'x-mock-role': 'admin' }
+            });
+            if(response.ok) {
+                const data = await response.json();
+                const mapped = data.map((u: any) => ({
+                    id: u._id,
+                    name: `${u.firstName} ${u.lastName || ''}`.trim(),
+                    role: u.role,
+                    department: 'General', // Placeholder
+                    email: u.email,
+                    status: 'Active' // Placeholder
+                }));
+                setUsers(mapped);
+            }
+        } catch (error) {
+            console.error("Failed to fetch users", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if(user?.publicMetadata?.role === 'admin') {
+            fetchUsers();
+        }
+    }, [user]);
+
+    // Enhanced Filter Logic
+    const filteredUsers = users.filter((u: any) => {
+        const role = u.role?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+        
+        // Tab 0: Students (role="student")
+        // Tab 1: Faculty (role="teacher", "faculty", "admin", "staff")
+        const matchesTab = tabValue === 0 
+            ? role === 'student'
+            : ['teacher', 'faculty', 'admin', 'staff'].includes(role);
+
+        const matchesSearch = (u.name?.toLowerCase() || '').includes(search) || (u.email?.toLowerCase() || '').includes(search);
+        
+        return matchesTab && matchesSearch;
     });
 
     const handleEditClick = (user: any) => {
@@ -37,152 +83,310 @@ export const UsersView = () => {
         setOpenEdit(false);
     };
 
-    const handleDelete = (id: number) => {
-        if (window.confirm('Are you sure you want to remove this user?')) {
-            setUsers(users.filter(u => u.id !== id));
+    const handleDelete = async (id: number) => {
+        if (window.confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/college/members/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-mock-role': 'admin' }
+                });
+
+                if (response.ok) {
+                    setUsers(users.filter(u => u.id !== id));
+                } else {
+                    const data = await response.json();
+                    alert(`Failed to delete user: ${data.message || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Error deleting user');
+            }
         }
+    };
+    
+    const handleAddMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
     };
 
     if (user?.publicMetadata?.role !== 'admin') {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-                <Typography variant="h5" color="text.secondary">Access Denied. Admins only.</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                    <Shield size={48} color={theme.palette.error.main} style={{ marginBottom: 16 }} />
+                    <Typography variant="h5" fontWeight={700} gutterBottom>Access Restricted</Typography>
+                    <Typography color="text.secondary">This area is reserved for College Administrators.</Typography>
+                </Paper>
             </Box>
         );
     }
 
+    const studentCount = users.filter(u => u.role === 'student').length;
+    const facultyCount = users.filter(u => ['teacher', 'faculty', 'admin', 'staff'].includes(u.role)).length;
+
     return (
-        <Box sx={{ pb: 6 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box sx={{ width: '100%', px: 3, pb: 4 }}>
+            
+            {/* Header Section */}
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', md: 'row' }, 
+                justifyContent: 'space-between', 
+                alignItems: { xs: 'flex-start', md: 'center' }, 
+                mb: 3, gap: 2 
+            }}>
                 <Box>
-                    <Typography variant="h4" fontWeight={800} gutterBottom sx={{ background: 'linear-gradient(45deg, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        User Management
+                    <Typography variant="overline" fontWeight={700} color="secondary" sx={{ letterSpacing: 1.2 }}>
+                        ADMINISTRATION
                     </Typography>
-                    <Typography variant="body1" color="text.secondary">Manage students, faculty, and permissions.</Typography>
+                    <Typography variant="h3" fontWeight={800} sx={{ 
+                        mt: 0.5,
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #9333ea 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                    }}>
+                        User Directory
+                    </Typography>
                 </Box>
-                <Button variant="contained" startIcon={<UserPlus size={18} />} sx={{ borderRadius: 1, px: 3, py: 1.2, boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }}>
-                    Add User
-                </Button>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button 
+                        onClick={fetchUsers}
+                        variant="outlined"
+                        startIcon={<RefreshCcw size={18} className={loading ? "spin" : ""} />}
+                        sx={{ borderRadius: 3, px: 3 }}
+                    >
+                        Refresh List
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        endIcon={<ChevronDown size={18} />} 
+                        startIcon={<UserPlus size={18} />} 
+                        onClick={handleAddMenuClick}
+                        sx={{ 
+                            borderRadius: 3, px: 3, py: 1.2, 
+                            boxShadow: '0 8px 20px -4px rgba(79, 70, 229, 0.4)',
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                            '&:hover': { boxShadow: '0 12px 24px -4px rgba(79, 70, 229, 0.6)' }
+                        }}
+                    >
+                        Add Members
+                    </Button>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={() => setAnchorEl(null)}
+                        PaperProps={{ sx: { mt: 1.5, borderRadius: 2, minWidth: 200, boxShadow: theme.shadows[4] } }}
+                    >
+                        <MenuItem onClick={() => { setOpenAdd(true); setAnchorEl(null); }} sx={{ py: 1.5 }}>
+                             <UserPlus size={16} style={{ marginRight: 12 }} /> Add Single Member
+                        </MenuItem>
+                        <MenuItem onClick={() => { setOpenImport(true); setAnchorEl(null); }} sx={{ py: 1.5 }}>
+                             <Upload size={16} style={{ marginRight: 12 }} /> Bulk Import (Excel)
+                        </MenuItem>
+                    </Menu>
+                </Box>
             </Box>
 
-            {/* Summary Stats */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <AddMemberForm 
+                open={openAdd} 
+                onClose={() => setOpenAdd(false)}
+                onSuccess={() => { fetchUsers(); }}
+            />
+
+            <BulkImport 
+                open={openImport} 
+                onClose={() => setOpenImport(false)}
+                onSuccess={() => { fetchUsers(); }}
+            />
+
+            {/* Premium Stats Grid */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
                 {[
-                    { label: 'Total Users', value: '1,240', color: 'linear-gradient(135deg, #4f46e5 0%, #818cf8 100%)' },
-                    { label: 'Active Students', value: '850', color: 'linear-gradient(135deg, #059669 0%, #34d399 100%)' },
-                    { label: 'Faculty Online', value: '45', color: 'linear-gradient(135deg, #d97706 0%, #fbbf24 100%)' }
+                    { label: 'Total Users', value: users.length, icon: Users, color: '#3b82f6', trend: 'Registered Members' },
+                    { label: 'Students', value: studentCount, icon: GraduationCap, color: '#10b981', trend: 'Active Learners' },
+                    { label: 'Faculty & Staff', value: facultyCount, icon: Shield, color: '#f59e0b', trend: 'Instructors' },
+                    { label: 'System Status', value: 'Online', icon: Activity, color: '#ec4899', trend: 'Fully Operational' }
                 ].map((stat, i) => (
-                    <Grid size={{ xs: 12, md: 4 }} key={i}>
+                    <Grid item xs={12} sm={6} lg={3} key={i}>
                         <Card sx={{ 
-                            borderRadius: 1, 
-                            background: stat.color, 
-                            color: 'white',
-                            position: 'relative',
-                            overflow: 'hidden'
+                            borderRadius: 4, 
+                            border: '1px solid', 
+                            borderColor: alpha(stat.color, 0.2),
+                            background: `linear-gradient(145deg, ${alpha(stat.color, 0.05)} 0%, ${alpha(theme.palette.background.paper, 0.4)} 100%)`,
+                            backdropFilter: 'blur(20px)',
+                            boxShadow: theme.shadows[2],
+                            position: 'relative', overflow: 'hidden'
                         }}>
-                             <Box sx={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
-                             <Box sx={{ position: 'absolute', bottom: -20, left: 10, width: 80, height: 80, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
-                            <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-                                <Typography variant="h3" fontWeight={800} sx={{ mb: 0.5 }}>{stat.value}</Typography>
-                                <Typography variant="subtitle2" fontWeight={600} sx={{ opacity: 0.9 }}>{stat.label}</Typography>
+                             <Box sx={{ 
+                                position: 'absolute', right: -20, top: -20, 
+                                width: 100, height: 100, borderRadius: '50%', 
+                                background: stat.color, opacity: 0.1, filter: 'blur(30px)' 
+                            }} />
+                            <CardContent sx={{ p: 3 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(stat.color, 0.1), color: stat.color, mr: 2 }}>
+                                        <stat.icon size={24} />
+                                    </Box>
+                                    <Typography variant="body2" fontWeight={600} color="text.secondary">{stat.label}</Typography>
+                                </Box>
+                                <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>{stat.value}</Typography>
+                                <Chip label={stat.trend} size="small" sx={{ 
+                                    bgcolor: alpha(stat.color, 0.1), 
+                                    color: stat.color, 
+                                    fontWeight: 700, 
+                                    borderRadius: 1.5,
+                                    height: 24
+                                }} />
                             </CardContent>
                         </Card>
                     </Grid>
                 ))}
             </Grid>
 
-            <Card sx={{ borderRadius: 1, mb: 4, boxShadow: 2 }}>
-                <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-                    <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} aria-label="user tabs">
-                        <Tab label="Students" sx={{ fontWeight: 600, textTransform: 'none', fontSize: '1rem' }} />
-                        <Tab label="Faculty" sx={{ fontWeight: 600, textTransform: 'none', fontSize: '1rem' }} />
-                    </Tabs>
-                </Box>
-                
-                {/* Distinct Context Header */}
+            {/* Table Section */}
+            <Paper sx={{ 
+                borderRadius: 4, 
+                border: '1px solid', borderColor: 'divider', 
+                overflow: 'hidden',
+                boxShadow: theme.shadows[4] 
+            }}>
+                 {/* Toolbar with Tabs and Search */}
                 <Box sx={{ 
                     p: 2, 
-                    bgcolor: tabValue === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(168, 85, 247, 0.05)', 
-                    borderBottom: '1px solid',
-                    borderColor: tabValue === 0 ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-                    display: 'flex', alignItems: 'center', gap: 1
+                    borderBottom: '1px solid', borderColor: 'divider', 
+                    display: 'flex', flexDirection: { xs: 'column', md: 'row' }, 
+                    alignItems: 'center', justifyContent: 'space-between', 
+                    bgcolor: alpha(theme.palette.primary.main, 0.02),
+                    gap: 2
                 }}>
-                    <Shield size={16} color={tabValue === 0 ? '#3b82f6' : '#a855f7'} />
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ color: tabValue === 0 ? 'primary.main' : 'secondary.main', letterSpacing: 0.5 }}>
-                        {tabValue === 0 ? 'STUDENT DIRECTORY • STRICTLY CONFIDENTIAL' : 'FACULTY DIRECTORY • STAFF ONLY'}
-                    </Typography>
-                </Box>
-                <Box sx={{ p: 3 }}>
-                    <TextField 
-                        fullWidth 
-                        placeholder="Search users by name or email..." 
-                        variant="outlined"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        InputProps={{
-                            startAdornment: <Search size={20} color="gray" style={{ marginRight: 8 }} />,
-                            sx: { borderRadius: 3, bgcolor: 'background.default' }
-                        }}
-                        sx={{ mb: 3 }}
-                    />
+                    <Stack direction="row" spacing={1} sx={{ bgcolor: 'background.paper', p: 0.5, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+                        <Button 
+                            disableElevation
+                            variant={tabValue === 0 ? 'contained' : 'text'} 
+                            color={tabValue === 0 ? 'primary' : 'inherit'}
+                            onClick={() => setTabValue(0)}
+                            sx={{ borderRadius: 2.5, px: 3, fontWeight: 700, minWidth: 120 }}
+                        >
+                            Students
+                        </Button>
+                        <Button 
+                            disableElevation
+                            variant={tabValue === 1 ? 'contained' : 'text'} 
+                            color={tabValue === 1 ? 'secondary' : 'inherit'}
+                            onClick={() => setTabValue(1)}
+                            sx={{ borderRadius: 2.5, px: 3, fontWeight: 700, minWidth: 120 }}
+                        >
+                            Faculty
+                        </Button>
+                    </Stack>
 
-                    <Grid container spacing={2}>
-                        {filteredUsers.map((u) => (
-                            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={u.id}>
-                                <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', transition: 'all 0.2s', '&:hover': {borderColor: 'primary.main', boxShadow: 3} }} elevation={0}>
-                                    <CardContent sx={{ p: 2 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                                <Avatar sx={{ bgcolor: u.role === 'teacher' ? 'secondary.main' : 'primary.main', fontWeight: 'bold' }}>{u.name[0]}</Avatar>
-                                                <Box>
-                                                    <Typography variant="subtitle1" fontWeight={700}>{u.name}</Typography>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.7 }}>
-                                                        <Mail size={12} />
-                                                        <Typography variant="caption">{u.email}</Typography>
-                                                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 3, border: '1px solid', borderColor: 'divider', width: { xs: '100%', md: 300 } }}>
+                        <Search size={18} />
+                        <input 
+                            placeholder="Search by name or email..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: theme.palette.text.primary, background: 'transparent' }}
+                        />
+                    </Box>
+                </Box>
+
+                {loading && <LinearProgress />}
+
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow sx={{ bgcolor: alpha(theme.palette.common.black, 0.02) }}>
+                                <TableCell sx={{ py: 2, pl: 4, fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary' }}>USER PROFILE</TableCell>
+                                <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary' }}>ROLE & DEPARTMENT</TableCell>
+                                <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary' }}>STATUS</TableCell>
+                                <TableCell align="right" sx={{ pr: 4, fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary' }}>ACTIONS</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredUsers.map((u) => (
+                                <TableRow key={u.id} hover sx={{ transition: 'all 0.2s' }}>
+                                    <TableCell sx={{ py: 2.5, pl: 4 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Avatar sx={{ 
+                                                bgcolor: u.role === 'student' ? 'primary.main' : 'secondary.main', 
+                                                fontWeight: 'bold', width: 40, height: 40,
+                                                boxShadow: theme.shadows[2]
+                                            }}>
+                                                {u.name[0]}
+                                            </Avatar>
+                                            <Box>
+                                                <Typography variant="subtitle2" fontWeight={700}>{u.name}</Typography>
+                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
+                                                    <Mail size={12} color={theme.palette.text.secondary} />
+                                                    <Typography variant="caption" color="text.secondary">{u.email}</Typography>
                                                 </Box>
                                             </Box>
-                                            <Chip label={u.status} size="small" color={u.status === 'Active' ? 'success' : 'default'} sx={{ borderRadius: 1, height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
                                         </Box>
-                                        
-                                        <Box sx={{ bgcolor: 'background.default', p: 1.5, borderRadius: 2, mb: 2 }}>
-                                            <Grid container>
-                                                <Grid size={{ xs: 6 }}>
-                                                    <Typography variant="caption" color="text.secondary" display="block">DEPARTMENT</Typography>
-                                                    <Typography variant="body2" fontWeight={600}>{u.department}</Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 6 }}>
-                                                    <Typography variant="caption" color="text.secondary" display="block">ROLE</Typography>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <Shield size={12} />
-                                                        <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>{u.role}</Typography>
-                                                    </Box>
-                                                </Grid>
-                                            </Grid>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Box>
+                                            <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>{u.role}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{u.department}</Typography>
                                         </Box>
-
-                                        <Box sx={{ display: 'flex', gap: 1 }}>
-                                            <Button variant="outlined" size="small" fullWidth startIcon={<Edit size={14} />} onClick={() => handleEditClick(u)} sx={{ borderRadius: 2 }}>
-                                                Edit
-                                            </Button>
-                                            <Button variant="outlined" color="error" size="small" sx={{ minWidth: 40, borderRadius: 2 }} onClick={() => handleDelete(u.id)}>
-                                                <Trash2 size={16} />
-                                            </Button>
+                                    </TableCell>
+                                    <TableCell>
+                                         <Chip 
+                                            label={u.status} 
+                                            size="small" 
+                                            sx={{ 
+                                                bgcolor: u.status === 'Active' ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+                                                color: u.status === 'Active' ? 'success.main' : 'error.main',
+                                                fontWeight: 800, borderRadius: 2
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ pr: 4 }}>
+                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                            <Tooltip title="Edit Profile">
+                                                <IconButton 
+                                                    onClick={() => handleEditClick(u)}
+                                                    size="small"
+                                                    sx={{ 
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                                                        color: 'primary.main',
+                                                        '&:hover': { bgcolor: 'primary.main', color: 'white' }
+                                                    }}
+                                                >
+                                                    <Edit size={16} />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Delete User">
+                                                <IconButton 
+                                                    onClick={() => handleDelete(u.id)}
+                                                    size="small"
+                                                    sx={{ 
+                                                        bgcolor: alpha(theme.palette.error.main, 0.1), 
+                                                        color: 'error.main',
+                                                        '&:hover': { bgcolor: 'error.main', color: 'white' }
+                                                    }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Stack>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            
+                            {filteredUsers.length === 0 && !loading && (
+                                <TableRow>
+                                    <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
+                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, opacity: 0.6 }}>
+                                            <Typography variant="h6">No users found</Typography>
+                                            <Typography variant="body2">Try adjusting your filters or add a new member.</Typography>
                                         </Box>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
-                    
-                    {filteredUsers.length === 0 && (
-                        <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6 }}>
-                            <Typography variant="h6">No users found</Typography>
-                            <Typography variant="body2">Try adjusting your search terms.</Typography>
-                        </Box>
-                    )}
-                </Box>
-            </Card>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
 
             {/* Edit User Dialog */}
             <Dialog open={openEdit} onClose={() => setOpenEdit(false)} fullWidth maxWidth="sm">

@@ -140,6 +140,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
                             Live Demo
                         </Button>
                     </Box>
+                    <Box sx={{ mt: 2 }}>
+                        <Button 
+                            variant="text" 
+                            size="small" 
+                            onClick={() => signIn('superadmin')}
+                            sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+                        >
+                            Super Admin Login (Demo)
+                        </Button>
+                    </Box>
                 </motion.div>
             </Container>
 

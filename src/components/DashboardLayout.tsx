@@ -80,6 +80,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
   if (user?.publicMetadata?.role === 'admin') {
       menuItems.splice(4, 0, { text: 'Users', icon: <Users size={20} />, id: 'Users' });
   }
+  
+  if (user?.publicMetadata?.role === 'superadmin') {
+      menuItems.splice(1, 0, { text: 'Colleges', icon: <LayoutDashboard size={20} />, id: 'Colleges' });
+  }
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
@@ -219,9 +223,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
     </Box>
   );
 
+  /* Premium View Logic */
+  const isPremiumView = user?.publicMetadata?.role === 'admin' && ['Dashboard', 'Colleges'].includes(currentView);
+  const isFullWidthView = ['Dashboard', 'Users', 'Colleges', 'Complaints'].includes(currentView);
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
+      
+      {!isPremiumView && (
       <AppBar
         position="fixed"
         elevation={0}
@@ -236,7 +246,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
         }}
       >
         <Toolbar>
-          {/* Top Bar Command Trigger */}
+           {/* ... ToolBar Content ... */}
+           {/* Top Bar Command Trigger */}
           <Tooltip title="Search (Ctrl + K)">
             <IconButton onClick={() => setPaletteOpen(true)} sx={{ mr: 'auto', color: 'text.secondary' }}>
                 <Command size={20} />
@@ -266,6 +277,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
           </Box>
         </Toolbar>
       </AppBar>
+      )}
+
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
@@ -298,9 +311,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
         sx={{ 
 
             flexGrow: 1, 
-            p: currentView === 'Complaints' ? 0 : 3, 
+            p: isFullWidthView ? 0 : 2, 
             width: { sm: `calc(100% - ${drawerWidth}px)` }, 
-            mt: 8,
+            mt: isPremiumView ? 0 : 8,
             minHeight: '100vh',
             bgcolor: 'background.default'
         }}

@@ -2,12 +2,15 @@ const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
 
 // Mock Middleware for development without keys
 const mockAuth = (req, res, next) => {
+  // Check for role in headers (set by frontend MockAuth)
+  const mockRole = req.headers['x-mock-role'] || 'student';
+  
   // Inject a dummy user
   req.auth = {
     userId: 'user_mock_123',
     claims: {
       metadata: {
-        role: 'student'
+        role: mockRole
       }
     }
   };

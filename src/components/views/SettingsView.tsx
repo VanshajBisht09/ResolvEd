@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useToast } from '../common/ToastContext';
 import { Box, Typography, Card, CardContent, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Divider, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Avatar, IconButton, useTheme, Tooltip, alpha } from '@mui/material';
 import { useUser } from '../MockAuth';
 import { useColorMode } from '../ThemeContext';
@@ -25,6 +27,65 @@ export const SettingsView = () => {
         bio: 'Passionate about education and technology.',
         department: 'Computer Science'
     });
+
+    // Email Template State
+    const [template, setTemplate] = useState({ subject: '', body: '', enabled: false });
+    const [loadingTemplate, setLoadingTemplate] = useState(false);
+    const { showToast } = useToast();
+
+    // Fetch template on load
+    useEffect(() => {
+        if (user?.publicMetadata?.role === 'admin') {
+            axios.get('http://localhost:5000/api/college/settings/email-templates', {
+                headers: { 'x-mock-role': 'admin' }
+            }).then(res => {
+                if (res.data.welcomeMember) {
+                     setTemplate(res.data.welcomeMember);
+                } else {
+                     // Default placeholders if empty
+                     setTemplate({ 
+                         subject: 'Welcome to {{collegeName}}', 
+                         body: 'Hello {{name}},<br>Your login credentials are:<br>Email: {{email}}<br>Password: {{password}}',
+                         enabled: false
+                     });
+                }
+            }).catch(e => console.error(e));
+        }
+    }, [user]);
+
+    const handleSaveTemplate = async () => {
+        setLoadingTemplate(true);
+        try {
+            await axios.put('http://localhost:5000/api/college/settings/email-templates', {
+                type: 'welcomeMember',
+                subject: template.subject,
+                body: template.body,
+                enabled: template.enabled
+            }, { headers: { 'x-mock-role': 'admin' } });
+            showToast('Email template updated', 'success');
+        } catch (error) {
+            showToast('Failed to save template', 'error');
+        } finally {
+            setLoadingTemplate(false);
+        }
+    };
+    
+    // Reset to hardcoded default for convenience (Client side only, needs save to persist)
+    const handleResetDefault = () => {
+        setTemplate({
+            subject: 'Welcome to {{collegeName}} [ResolvEd]',
+            body: `<h2>Welcome to {{collegeName}}</h2>
+<p>Hello {{name}},</p>
+<p>You have been registered as a <strong>{{role}}</strong>.</p>
+<p><strong>Your Credentails:</strong></p>
+<ul>
+    <li>Email: {{email}}</li>
+    <li>Password: {{password}}</li>
+</ul>
+<p><a href="{{loginLink}}">Login Here</a></p>`,
+            enabled: false
+        });
+    };
 
     const handleSave = () => {
         // Here we would typically make an API call
@@ -203,6 +264,69 @@ export const SettingsView = () => {
                                 <Switch checked={mode === 'dark'} onChange={toggleColorMode} color="primary" />
                             </ListItemSecondaryAction>
                         </ListItem>
+                        <ListItem sx={{ p: 3, flexDirection: 'column', alignItems: 'flex-start' }}>
+                             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 2, justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Box sx={{ mr: 2, p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1), color: 'info.main', display: 'flex' }}>
+                                        <Mail size={20} />
+                                    </Box>
+                                    <ListItemText 
+                                        primary={<Typography fontWeight={700}>Welcome Email Template</Typography>} 
+                                        secondary="Customize the onboarding email sent to new members" 
+                                    />
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="body2" fontWeight={600} color={template.enabled ? 'primary' : 'text.disabled'}>
+                                        {template.enabled ? 'Custom Active' : 'Default Active'}
+                                    </Typography>
+                                    <Switch 
+                                        checked={!!template.enabled} 
+                                        onChange={(e) => setTemplate({ ...template, enabled: e.target.checked })} 
+                                        color="primary" 
+                                    />
+                                </Box>
+                             </Box>
+                             <Box sx={{ width: '100%', pl: 7, pr: 2, opacity: template.enabled ? 1 : 0.6, pointerEvents: template.enabled ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
+                                 <TextField 
+                                    label="Subject Line" 
+                                    fullWidth 
+                                    size="small" 
+                                    sx={{ mb: 2 }}
+                                    value={template.subject}
+                                    onChange={(e) => setTemplate({...template, subject: e.target.value})}
+                                    helperText="Supported: {{name}}, {{collegeName}}"
+                                 />
+                                 <TextField 
+                                    label="Email Body (HTML Supported)" 
+                                    fullWidth 
+                                    multiline
+                                    rows={4}
+                                    value={template.body}
+                                    onChange={(e) => setTemplate({...template, body: e.target.value})}
+                                    helperText="Supported: {{name}}, {{email}}, {{password}}, {{role}}, {{collegeName}}"
+                                 />
+                                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                                    <Button 
+                                        variant="contained" 
+                                        size="small" 
+                                        onClick={handleSaveTemplate}
+                                        disabled={loadingTemplate}
+                                    >
+                                        {loadingTemplate ? 'Saving...' : 'Save Template'}
+                                    </Button>
+                                    <Button 
+                                        variant="text" 
+                                        size="small" 
+                                        color="secondary"
+                                        onClick={handleResetDefault}
+                                        sx={{ pointerEvents: 'auto' }} // Always allow reset even if disabled
+                                    >
+                                        Load Default Text
+                                    </Button>
+                                 </Box>
+                             </Box>
+                        </ListItem>
+                        <Divider variant="inset" component="li" />
                     </List>
                 </CardContent>
             </Card>

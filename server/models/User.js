@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true },
   firstName: { type: String },
   lastName: { type: String },
-  role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
+  role: { type: String, enum: ['student', 'teacher', 'faculty', 'admin', 'superadmin'], default: 'student' },
   collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College' },
   metadata: { type: Object }, // Store extra info like department, year, etc.
   createdAt: { type: Date, default: Date.now }
