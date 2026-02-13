@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useToast } from '../common/ToastContext';
+import { useToast } from '../components/common/ToastContext';
 import { Box, Typography, Card, CardContent, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Divider, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Avatar, IconButton, useTheme, Tooltip, alpha } from '@mui/material';
-import { useUser } from '../MockAuth';
-import { useColorMode } from '../ThemeContext';
+import { useUser } from '../components/MockAuth';
+import { useColorMode } from '../components/ThemeContext';
 import { Edit, Camera, Save, X, Mail, Shield, LogOut, Palette } from 'lucide-react';
 
 export const SettingsView = () => {

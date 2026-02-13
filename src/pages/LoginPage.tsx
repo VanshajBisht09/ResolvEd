@@ -19,7 +19,7 @@ import {
     alpha
 } from '@mui/material';
 import { Eye, EyeOff, ArrowLeft, Lock, Mail, UserCircle } from 'lucide-react';
-import { useUser } from './MockAuth';
+import { useUser } from '../components/MockAuth';
 import { motion } from 'framer-motion';
 
 interface LoginPageProps {

@@ -8,6 +8,7 @@ interface RequestDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   viewMode: 'student' | 'faculty';
+  onReschedule?: (requestId: string) => void;
 }
 
 export function RequestDetailsModal({
@@ -15,6 +16,7 @@ export function RequestDetailsModal({
   isOpen,
   onClose,
   viewMode,
+  onReschedule
 }: RequestDetailsModalProps) {
   if (!request) return null;
 

@@ -5,10 +5,10 @@ import {
     useTheme, alpha, Card, CardContent, Grid, LinearProgress, Avatar,
     Dialog, DialogTitle, DialogContent, TextField, DialogActions, FormControl, InputLabel, Select, MenuItem, Menu
 } from '@mui/material';
-import { useUser } from '../MockAuth';
+import { useUser } from '../components/MockAuth';
 import { Edit, Trash2, UserPlus, Search, Mail, Shield, Upload, ChevronDown, RefreshCcw, Activity, Users, UserCheck, GraduationCap } from 'lucide-react';
-import { AddMemberForm } from '../CollegeAdmin/AddMemberForm';
-import { BulkImport } from '../CollegeAdmin/BulkImport';
+import { AddMemberForm } from '../components/CollegeAdmin/AddMemberForm';
+import { BulkImport } from '../components/CollegeAdmin/BulkImport';
 
 export const UsersView = () => {
     const { user } = useUser();
@@ -206,7 +206,7 @@ export const UsersView = () => {
                     { label: 'Faculty & Staff', value: facultyCount, icon: Shield, color: '#f59e0b', trend: 'Instructors' },
                     { label: 'System Status', value: 'Online', icon: Activity, color: '#ec4899', trend: 'Fully Operational' }
                 ].map((stat, i) => (
-                    <Grid item xs={12} sm={6} lg={3} key={i}>
+                    <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={i}>
                         <Card sx={{ 
                             borderRadius: 4, 
                             border: '1px solid', 

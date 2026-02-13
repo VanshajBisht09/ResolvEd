@@ -36,22 +36,52 @@ import { useUser } from './MockAuth';
 import { CommandPalette } from './CommandPalette';
 import { NotificationDrawer } from './NotificationDrawer';
 import { useNotification } from './NotificationContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  currentView: string;
-  onViewChange: (view: string) => void;
 }
 
 const drawerWidth = 280;
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, currentView, onViewChange }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const theme = useTheme();
   const { user, signOut } = useUser();
   const { unreadCount } = useNotification();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Map paths to view IDs for highlighting
+  const getActiveView = (path: string) => {
+    if (path.includes('/dashboard')) return 'Dashboard';
+    if (path.includes('/messages')) return 'Messages';
+    if (path.includes('/complaints')) return 'Complaints';
+    if (path.includes('/announcements')) return 'Announcements';
+    if (path.includes('/settings')) return 'Settings';
+    if (path.includes('/users')) return 'Users';
+    if (path.includes('/colleges')) return 'Colleges';
+    return 'Dashboard';
+  };
+
+  const currentView = getActiveView(location.pathname);
+
+  const handleNavigation = (viewId: string) => {
+    switch (viewId) {
+        case 'Dashboard': navigate('/dashboard'); break;
+        case 'Messages': navigate('/messages'); break;
+        case 'Complaints': navigate('/complaints'); break;
+        case 'Announcements': navigate('/announcements'); break;
+        case 'Settings': navigate('/settings'); break;
+        case 'Users': navigate('/users'); break;
+        case 'Colleges': navigate('/colleges'); break;
+        default: navigate('/dashboard');
+    }
+  };
+
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -155,7 +185,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
-                onClick={() => onViewChange(item.id)}
+                onClick={() => handleNavigation(item.id)}
                 selected={currentView === item.id}
                 sx={{ 
                   borderRadius: 1, 
@@ -325,7 +355,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, curr
       <CommandPalette 
           open={paletteOpen} 
           onClose={() => setPaletteOpen(false)} 
-          onNavigate={onViewChange} 
+          onNavigate={(view) => handleNavigation(view)} 
       />
 
        <NotificationDrawer 

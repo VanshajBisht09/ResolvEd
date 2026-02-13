@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useData } from '../DataContext';
-import { useUser } from '../MockAuth';
-import { ChatLayout } from '../chat/ChatLayout';
+import { useData } from '../components/DataContext';
+import { useUser } from '../components/MockAuth';
+import { ChatLayout } from '../components/chat/ChatLayout';
 import { Box, Typography } from '@mui/material';
 
 export const ChatView: React.FC = () => {

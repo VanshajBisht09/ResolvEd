@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../MockAuth';
-import { useData } from '../DataContext';
-import { StudentDashboard } from '../StudentDashboard';
-import { FacultyDashboard } from '../FacultyDashboard';
-import { AdminDashboard } from '../AdminDashboard';
+import { useUser } from '../components/MockAuth';
+import { useData } from '../components/DataContext';
+import { StudentDashboard } from '../components/StudentDashboard';
+import { FacultyDashboard } from '../components/FacultyDashboard';
+import { AdminDashboard } from '../components/AdminDashboard';
 import { Box, Typography, Button, Grid, Skeleton, useTheme, alpha } from '@mui/material';
-import { MeetingRequest } from '../../types';
+import { MeetingRequest } from '../types';
 
-import { SuperAdminView } from './SuperAdminView';
-import { RequestDetailsModal } from '../RequestDetailsModal';
+import { SuperAdminView } from './SuperAdmin';
+import { RequestDetailsModal } from '../components/RequestDetailsModal';
 
 export const DashboardView = ({ onNavigate }: { onNavigate: (view: string) => void }) => {
     const theme = useTheme();
@@ -76,7 +76,7 @@ export const DashboardView = ({ onNavigate }: { onNavigate: (view: string) => vo
                 {/* Stats Cards Skeleton */}
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                     {[1, 2, 3].map((i) => (
-                        <Grid item xs={12} sm={4} key={i}>
+                        <Grid size={{ xs: 12, sm: 4 }} key={i}>
                             <Skeleton 
                                 variant="rectangular" 
                                 height={140} 
@@ -89,7 +89,7 @@ export const DashboardView = ({ onNavigate }: { onNavigate: (view: string) => vo
 
                 {/* Main Content Skeleton */}
                 <Grid container spacing={4}>
-                    <Grid item xs={12} md={8}>
+                    <Grid size={{ xs: 12, md: 8 }}>
                         <Skeleton 
                             variant="rectangular" 
                             height={400} 
@@ -103,7 +103,7 @@ export const DashboardView = ({ onNavigate }: { onNavigate: (view: string) => vo
                             sx={{ borderRadius: 4 }} 
                         />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <Skeleton 
                             variant="rectangular" 
                             height={600} 

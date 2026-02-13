@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, Button, Card, CardContent, Grid, Chip, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Divider, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useUser } from '../MockAuth';
+import { useUser } from '../components/MockAuth';
 import { Plus, Pin, MoreHorizontal, User } from 'lucide-react';
 
 const MOCK_ANNOUNCEMENTS = [

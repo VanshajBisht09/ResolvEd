@@ -5,9 +5,9 @@ import {
     useTheme, alpha, Card, CardContent, Grid, LinearProgress, Avatar
 } from '@mui/material';
 import { Plus, Ban, CheckCircle, Shield, Building, Mail, Edit, Zap, Activity, Users, Globe, Search, RefreshCcw } from 'lucide-react';
-import { CollegeForm } from '../SuperAdmin/CollegeForm';
+import { CollegeForm } from '../components/SuperAdmin/CollegeForm';
 import axios from 'axios';
-import { useToast } from '../common/ToastContext';
+import { useToast } from '../components/common/ToastContext';
 
 interface College {
     _id: string;
@@ -129,7 +129,7 @@ export const SuperAdminView = () => {
                     { label: 'Platform Users', value: '2.4k', icon: Users, color: '#f59e0b', trend: '+340 this week' },
                     { label: 'Est. Revenue', value: `$${totalRevenue.toLocaleString()}`, icon: Activity, color: '#ec4899', trend: 'Monthly Recurring' }
                 ].map((stat, i) => (
-                    <Grid item xs={12} sm={6} lg={3} key={i}>
+                    <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={i}>
                         <Card sx={{ 
                             borderRadius: 4, 
                             border: '1px solid', 

@@ -13,7 +13,7 @@ interface StudentDashboardProps {
   user: User;
   requests: MeetingRequest[];
   facultyList: User[]; 
-  onAddRequest: (data: Partial<MeetingRequest>) => void;
+  onAddRequest: (request: MeetingRequest) => void;
   onRequestClick: (request: MeetingRequest) => void;
   onNavigate: (view: string) => void;
   onLogout: () => void;
@@ -62,7 +62,8 @@ export function StudentDashboard({
 
   const handleCreateSubmit = (data: any) => {
       // Data comes from CreateRequestForm
-      const newRequest: Partial<MeetingRequest> = {
+      const newRequest: MeetingRequest = {
+          id: Date.now().toString(),
           issueType: data.issueType,
           description: data.description,
           status: 'Pending',

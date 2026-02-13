@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, useTheme, Card } from '@mui/material';
 import { Plus } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../../firebaseConfig'; 
-import { useUser } from '../MockAuth';
+import { db } from '../firebaseConfig'; 
+import { useUser } from '../components/MockAuth';
 
 // Components
-import { ComplaintList } from '../complaints/ComplaintList';
-import { ComplaintDetail, Complaint } from '../complaints/ComplaintDetail';
-import { CreateComplaintDialog } from '../complaints/CreateComplaintDialog';
+import { ComplaintList } from '../components/complaints/ComplaintList';
+import { ComplaintDetail, Complaint } from '../components/complaints/ComplaintDetail';
+import { CreateComplaintDialog } from '../components/complaints/CreateComplaintDialog';
 
 export const ComplaintsView = () => {
     const { user } = useUser();
