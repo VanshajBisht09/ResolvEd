@@ -14,7 +14,7 @@ const generatePassword = () => crypto.randomBytes(4).toString('hex');
 router.post('/colleges', requireAuth, requireRole('superadmin'), async (req, res) => {
     try {
         console.log('[API] POST /colleges called with body:', req.body);
-        const { name, email, address, contactNumber, adminName } = req.body;
+        const { name, email, address, contactNumber, website, subscriptionStatus, description, logoUrl } = req.body;
 
         // Check if college exists
         let existingCollege = await College.findOne({ email });
@@ -27,12 +27,11 @@ router.post('/colleges', requireAuth, requireRole('superadmin'), async (req, res
             name,
             email,
             address,
-            address,
             contactNumber,
-            logoUrl: req.body.logoUrl || '',
-            description: req.body.description || '',
-            website: req.body.website || '',
-            subscriptionStatus: 'active' // Default active for now
+            logoUrl: logoUrl || '',
+            description: description || '',
+            website: website || '',
+            subscriptionStatus: subscriptionStatus || 'active'
         });
         await newCollege.save();
 
@@ -53,7 +52,12 @@ router.post('/colleges', requireAuth, requireRole('superadmin'), async (req, res
         // But let's stick to the requirements: "send a mail ... with welcome template".
         
         // We will send the email with the generated password.
-        const emailHtml = welcomeCollegeTemplate(name, email, password);
+        console.log('[Email Debug] Preparing to send welcome email.');
+        console.log('[Email Debug] College Name:', name);
+        console.log('[Email Debug] Email:', email);
+        console.log('[Email Debug] Logo URL:', logoUrl);
+
+        const emailHtml = welcomeCollegeTemplate(name, email, password, logoUrl);
         
         try {
             await sendEmail(email, 'Welcome to ResolvEd - Your College Dashboard', emailHtml);
@@ -61,6 +65,7 @@ router.post('/colleges', requireAuth, requireRole('superadmin'), async (req, res
             console.error('Failed to send welcome email:', emailError.message);
             // Proceed without failing the request, but maybe warn in response?
         }
+
 
         res.status(201).json({ message: 'College onboarding successful', college: newCollege });
 
@@ -93,6 +98,12 @@ router.put('/colleges/:id', requireAuth, requireRole('superadmin'), async (req, 
             }
         }
 
+        // Get the original college before update to check if email changed
+        const originalCollege = await College.findById(req.params.id);
+        if (!originalCollege) return res.status(404).json({ message: 'College not found' });
+
+        const emailChanged = email && email !== originalCollege.email;
+
         const updatedCollege = await College.findByIdAndUpdate(
             req.params.id,
             {
@@ -108,8 +119,16 @@ router.put('/colleges/:id', requireAuth, requireRole('superadmin'), async (req, 
             { new: true }
         );
 
-        if (!updatedCollege) {
-            return res.status(404).json({ message: 'College not found' });
+        if (emailChanged) {
+             const password = generatePassword();
+             const emailHtml = welcomeCollegeTemplate(name || originalCollege.name, email, password, updatedCollege.logoUrl);
+             
+             try {
+                await sendEmail(email, 'Welcome to ResolvEd - Your College Dashboard', emailHtml);
+                console.log(`[API] Email updated for college ${updatedCollege._id}. Welcome email sent to ${email}`);
+             } catch (emailError) {
+                 console.error('Failed to send welcome email on update:', emailError.message);
+             }
         }
 
         res.json({ message: 'College updated successfully', college: updatedCollege });
@@ -133,6 +152,18 @@ router.put('/colleges/:id/block', requireAuth, requireRole('superadmin'), async 
         res.json(college);
     } catch (error) {
         res.status(500).json({ message: 'Error updating college status' });
+    }
+});
+
+// Delete College
+router.delete('/colleges/:id', requireAuth, requireRole('superadmin'), async (req, res) => {
+    try {
+        const college = await College.findByIdAndDelete(req.params.id);
+        if (!college) return res.status(404).json({ message: 'College not found' });
+        res.json({ message: 'College deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting college:', error);
+        res.status(500).json({ message: 'Error deleting college' });
     }
 });
 

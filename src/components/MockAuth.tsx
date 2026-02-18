@@ -7,9 +7,12 @@ const UserContext = createContext<any>(null);
 
 export const useUser = () => useContext(UserContext);
 
+import { Navigate } from 'react-router-dom';
+
 export const SignedIn = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
-  return user ? <>{children}</> : null;
+  if (!user) return <Navigate to="/" replace />;
+  return <>{children}</>;
 };
 
 export const SignedOut = ({ children }: { children: React.ReactNode }) => {
@@ -74,7 +77,7 @@ export const MockClerkProvider = ({ children }: { children: React.ReactNode }) =
         fullName: 'Dr. Sarah Smith',
         firstName: 'Sarah',
         primaryEmailAddress: { emailAddress: 'sarah.smith@university.edu' },
-        publicMetadata: { role: 'faculty' } // Note: DataContext uses 'faculty' role string, updated here for consistency if needed, though role is usually 'teacher' in this object keys. Let's keep role proper.
+        publicMetadata: { role: 'faculty' }
       },
       admin: {
         id: 'user_admin_123',

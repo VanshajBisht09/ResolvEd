@@ -7,7 +7,6 @@ import { DashboardLayout } from './components/DashboardLayout';
 import { ThemeProvider } from './components/ThemeContext';
 import { ToastProvider } from './components/common/ToastContext';
 
-// Pages
 import LandingPage from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardView } from './pages/Dashboard';
@@ -32,7 +31,7 @@ function App() {
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={
-                        isSignedIn ? <Navigate to="/dashboard" replace /> : <LandingPage onLoginClick={() => window.location.href = '/login'} />
+                        <LandingPage onLoginClick={() => window.location.href = '/login'} />
                     } />
                     <Route path="/login" element={
                         isSignedIn ? <Navigate to="/dashboard" replace /> : <LoginPage onBack={() => window.location.href = '/'} />
@@ -88,7 +87,6 @@ function App() {
                             </DashboardLayout>
                         </SignedIn>
                     } />
-
                     {/* Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

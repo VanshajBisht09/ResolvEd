@@ -80,6 +80,10 @@ router.post('/members', requireAuth, requireRole('admin'), checkCollegeStatus, a
 // Bulk Import Members (Excel)
 router.post('/members/bulk', requireAuth, requireRole('admin'), checkCollegeStatus, upload.single('file'), async (req, res) => {
     try {
+        console.log('[Bulk Import] Request received');
+        console.log('[Bulk Import] File:', req.file ? req.file.originalname : 'No file');
+        console.log('[Bulk Import] Auth:', req.auth);
+
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
@@ -206,12 +210,26 @@ router.get('/members', requireAuth, requireRole('admin'), checkCollegeStatus, as
 
 // Delete Member
 router.delete('/members/:id', requireAuth, requireRole('admin'), checkCollegeStatus, async (req, res) => {
-    console.log(`DELETE request for member: ${req.params.id}`);
+    const id = req.params.id.trim();
+    console.log(`[DELETE] Request for ID: "${id}" (Original: "${req.params.id}")`);
+    
     try {
         const currentUser = await User.findOne({ clerkId: req.auth.userId });
-        const memberToDelete = await User.findById(req.params.id);
+        
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+             console.log('[DELETE] Invalid ObjectId format');
+             return res.status(400).json({ message: 'Invalid ID format' });
+        }
+
+        const memberToDelete = await User.findById(id);
+        console.log('[DELETE] Found:', memberToDelete ? memberToDelete.email : 'NULL');
 
         if (!memberToDelete) {
+            // Debug: Print all user IDs to see what we DO have
+            const allUsers = await User.find({ collegeId: currentUser.collegeId }).select('_id email');
+            console.log('[DELETE] Available Users:', allUsers.map(u => `${u._id} (${u.email})`));
+            
             return res.status(404).json({ message: 'User not found' });
         }
 

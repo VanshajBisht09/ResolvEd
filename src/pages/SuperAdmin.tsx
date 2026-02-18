@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
     Box, Typography, Button, Paper, Table, TableBody, TableCell, 
     TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Stack,
-    useTheme, alpha, Card, CardContent, Grid, LinearProgress, Avatar
+    useTheme, alpha, Card, CardContent, Grid, LinearProgress, Avatar,
+    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
-import { Plus, Ban, CheckCircle, Shield, Building, Mail, Edit, Zap, Activity, Users, Globe, Search, RefreshCcw } from 'lucide-react';
+import { Plus, Ban, CheckCircle, Shield, Building, Mail, Edit, Zap, Activity, Users, Globe, Search, RefreshCcw, Trash2 } from 'lucide-react';
 import { CollegeForm } from '../components/SuperAdmin/CollegeForm';
 import axios from 'axios';
 import { useToast } from '../components/common/ToastContext';
@@ -25,6 +26,8 @@ export const SuperAdminView = () => {
     const [openForm, setOpenForm] = useState(false);
     const [editingCollege, setEditingCollege] = useState<College | null>(null);
     const [loading, setLoading] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [collegeToDelete, setCollegeToDelete] = useState<College | null>(null);
     const { showToast } = useToast();
 
     const fetchColleges = async () => {
@@ -45,13 +48,21 @@ export const SuperAdminView = () => {
     }, []);
 
     const handleBlockToggle = async (id: string, currentStatus: boolean) => {
+        // Optimistic Update
+        const previousColleges = [...colleges];
+        setColleges(colleges.map(c => 
+            c._id === id ? { ...c, isBlocked: !currentStatus } : c
+        ));
+
         try {
             await axios.put(`http://localhost:5000/api/superadmin/colleges/${id}/block`, {
                 isBlocked: !currentStatus
             });
             showToast(`College ${currentStatus ? 'Unblocked' : 'Blocked'} successfully`, 'success');
-            fetchColleges();
+            await fetchColleges();
         } catch (error) {
+            // Revert on failure
+            setColleges(previousColleges);
             showToast('Failed to update status', 'error');
         }
     };
@@ -64,6 +75,27 @@ export const SuperAdminView = () => {
     const handleAddClick = () => {
         setEditingCollege(null);
         setOpenForm(true);
+    };
+
+    const handleDeleteClick = (college: College) => {
+        setCollegeToDelete(college);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!collegeToDelete) return;
+
+        try {
+            await axios.delete(`http://localhost:5000/api/superadmin/colleges/${collegeToDelete._id}`);
+            setColleges(colleges.filter(c => c._id !== collegeToDelete._id));
+            showToast('College deleted successfully', 'success');
+        } catch (error) {
+            console.error('Failed to delete college', error);
+            showToast('Failed to delete college', 'error');
+        } finally {
+            setDeleteDialogOpen(false);
+            setCollegeToDelete(null);
+        }
     };
 
     // Derived Stats
@@ -282,6 +314,19 @@ export const SuperAdminView = () => {
                                                     {college.isBlocked ? <CheckCircle size={16} /> : <Ban size={16} />}
                                                 </IconButton>
                                             </Tooltip>
+                                            <Tooltip title="Delete College">
+                                                <IconButton 
+                                                    onClick={() => handleDeleteClick(college)}
+                                                    size="small"
+                                                    sx={{ 
+                                                        bgcolor: alpha(theme.palette.error.main, 0.1), 
+                                                        color: 'error.main',
+                                                        '&:hover': { bgcolor: 'error.main', color: 'white' }
+                                                    }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </IconButton>
+                                            </Tooltip>
                                         </Stack>
                                     </TableCell>
                                 </TableRow>
@@ -301,6 +346,36 @@ export const SuperAdminView = () => {
                     </Table>
                 </TableContainer>
             </Paper>
+
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={() => setDeleteDialogOpen(false)}
+                PaperProps={{
+                    sx: { borderRadius: 3, p: 1 }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 700 }}>Delete College?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to delete <strong>{collegeToDelete?.name}</strong>? 
+                        This action cannot be undone and will remove all associated data.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setDeleteDialogOpen(false)} sx={{ borderRadius: 2, color: 'text.secondary' }}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={handleConfirmDelete} 
+                        variant="contained" 
+                        color="error" 
+                        startIcon={<Trash2 size={18} />}
+                        sx={{ borderRadius: 2, px: 3 }}
+                    >
+                        Delete Forever
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <CollegeForm 
                 open={openForm} 
